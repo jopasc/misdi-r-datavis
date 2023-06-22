@@ -1,0 +1,79 @@
+---
+title: "Eurovision"
+author: "Jonas Paul Schreiber"
+date: "2023-06-21"
+output: html_document
+---
+
+Load packages
+
+```{r}
+library(dplyr)
+library(ggplot2)
+install.packages("remotes")
+remotes::install_github("rensa/ggflags")
+library(ggflags)
+
+```
+
+Load the data
+
+```{r}
+eurovision <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-05-17/eurovision.csv')
+```
+
+Look at the data
+
+```{r}
+head(eurovision)
+glimpse(eurovision)
+summary(eurovision)
+unique(eurovision$section)
+```
+Filter the results
+
+```{r}
+eurovision_finals <- eurovision %>% 
+  filter(section == "grand-final" | section == "final")
+
+```
+
+Prep flags
+
+```{r}
+flags <- eurovision_finals$country_emoji
+flags_clean <- gsub(pattern = ":flag_", "", x = flags) %>% gsub(":", "",.)
+flags_clean[1:5]
+eurovision_finals$flags_clean <- flags_clean
+names(eurovision_finals)
+```
+Filter data
+```{r}
+winners_1970 <- eurovision_finals %>% 
+  filter(winner == "TRUE") %>% 
+  filter(year >= 1970) %>% 
+  filter(nchar(flags_clean) <=2)
+tail(winners_1970)
+```
+
+Plotting
+
+```{r}
+winners1970_plot <- ggplot(winners_1970, aes(x=year, y=total_points)) +
+  geom_segment(aes(xend = year, yend = 0)) +
+  geom_flag(aes(country = flags_clean)) +
+  geom_text(aes(label = artist_country, hjust = -0.5)) +
+  coord_flip() +
+  labs(title = "Eurovision winning countries 1970-2022", 
+       caption = "MISDI Code Camp") +
+  theme_minimal(base_family = "Arial",
+                base_size = 16)
+
+winners1970_plot
+
+ggsave(filename = "winners_plot.png", winners1970_plot, 
+       units = "px", width = 3000, height = 2750, bg="white")
+
+            
+```
+
