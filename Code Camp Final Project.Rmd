@@ -1,0 +1,110 @@
+---
+title: "Code Camp Final Project"
+author: "Jonas Paul Schreiber"
+date: "2023-06-22"
+output: html_document
+---
+
+```{r}
+# load imdb and bechdel
+movies_imdb <- read_csv("https://raw.githubusercontent.com/andrewmoles2/rTrainIntroduction/main/r-data-wrangling-1/data/IMDb%20movies.csv")
+
+bechdel <- read_csv("https://raw.githubusercontent.com/andrewmoles2/rTrainIntroduction/main/r-data-wrangling-1/data/raw_bechdel.csv")
+
+# fix imdb id key
+movies_imdb$imdb_title_id <- parse_number(movies_imdb$imdb_title_id)
+
+# join data (left join)
+imdb_bechdel <- left_join(x = movies_imdb, y = bechdel,
+                          by = c("imdb_title_id" = "imdb_id", "year", "title"))
+```
+```{r}
+# review the data
+# just looking at Alfred Hitchcock movies in this example
+imdb_bechdel %>%
+  filter(grepl("Alfred Hitchcock", director)) %>%
+  glimpse()
+```
+
+```{r}
+# install.packages("plotly")
+# install.packages("viridis")
+# install.packages("hrbrthemes")
+library(ggplot2)
+library(plotly)
+library(readr, quietly = TRUE)
+library(dplyr, quietly = TRUE)
+library(DT, quietly = TRUE)
+library(viridis)
+library(hrbrthemes)
+library(stringr)
+library(tidyr)
+```
+
+```{r}
+# Transform dataset 
+data <- imdb_bechdel %>% 
+  filter(rating %in% c("0", "1", "2","3")) %>%
+  group_by(year, rating) %>% 
+  count(year, rating) 
+```
+
+
+```{r}
+
+p <- data %>% 
+  ggplot(aes(x=year, y=n, fill=factor(rating), text=rating)) +
+    geom_area( ) +
+    scale_fill_viridis(discrete = TRUE) +
+    ggtitle("Bechdel Scoring for IMDB movies from 1906 to 2020") +
+    labs(y = "Number of Movies", x = "Years", fill="Bechdel Score") +
+    theme_ipsum(axis_title_just = "cc", axis_title_size = 9) +
+    theme(legend.position="right")
+p
+# Turn it interactive
+p <- ggplotly(p, tooltip="text")
+p
+```
+# save the widget
+# library(htmlwidgets)
+# saveWidget(p, file=paste0( getwd(), "/HtmlWidget/ggplotlyStackedareachart.html"))
+```{r}
+#data_gerne <- imdb_bechdel %>% 
+#  filter(grepl("Drama", imdb_bechdel$genre))
+
+
+```
+```{r}
+data_2 <- imdb_bechdel %>% 
+  filter(rating %in% c("0", "1", "2","3")) %>% 
+  separate_longer_delim(country, delim = ",") %>% 
+  filter(year >= 1960) %>% 
+  group_by(country) %>% 
+  summarise(avg_vote_country = mean(avg_vote), avg_bechdel_country = mean(rating))
+data_2  
+
+```
+
+```{r}
+data_2_round <- data_2
+data_2_round$avg_vote_country <- round(data_2_round$avg_vote_country, digits = 1)
+data_2_round
+
+```
+```{r}
+data_3 <- data_2_round %>% 
+  select(country, avg_vote_country, avg_bechdel_country) %>% 
+  filter(country %in% c("USA", "Germany", "UK", "France", "Italy", "Finland", "Netherlands", "Poland", "Angola", "China", "Denmark", "Hong Kong", "Japan", "Mexico", "Russia", "South Korea", "Sweden", "Spain"))
+data_3
+```
+
+
+```{r}
+ggplot(data_3, aes(x = avg_vote_country, y = country, fill = avg_bechdel_country)) +
+  geom_tile() +
+  ggtitle("Bechdel Score and Movie Rating for Selected Countries") +
+    labs(y = "Country", x = "Average Movie Rating", fill="Bechdel Score") +
+    theme_ipsum(axis_title_just = "cc", axis_title_size = 9) +
+    theme(legend.position="right")
+```
+
